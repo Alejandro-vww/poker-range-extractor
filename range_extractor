@@ -1,0 +1,74 @@
+import numpy as np
+import cv2
+from PIL import ImageGrab
+
+
+
+# Coge la imagen del rango del portapapeles
+rango = np.array(ImageGrab.grabclipboard())
+
+#rango = cv2.imread("rango3.png")
+
+rango = cv2.cvtColor(rango , cv2.COLOR_RGB2HSV)
+
+#rango de detección
+
+HSV = [15,20,20]
+
+
+alto = rango.shape[0]
+ancho = rango.shape[1]
+altocuadro = rango.shape[0]/13
+anchocuadro = rango.shape[1]/13
+margenhorizontal = anchocuadro/20
+margenvertical = altocuadro/20
+
+colores = 1
+listacolores = {}
+rangos = {}
+
+def nombrador(X,Y):
+	siglas = {0:"A", 1:"K", 2:"Q", 3:"J", 4:"T", 5:"9", 6:"8", 7:"7", 8:"6", 9:"5", 10:"4", 11:"3", 12:"2"}
+	if X > Y:
+		return str(siglas[Y])+str(siglas[X])+"s"
+	else:
+		return str(siglas[X])+str(siglas[Y])+"o"
+
+def mediana(matriz):
+	lista = []
+	for i in range(matriz.shape[0]):
+		lista = lista + matriz[i].tolist()
+	lista = sorted(lista)
+	return lista[len(lista)//2]
+
+
+
+for y in range(13):
+	for x in range(13):
+		matrizH = rango[ int(y*altocuadro+margenvertical) : int((y+1)*altocuadro-margenvertical) , int(x*anchocuadro+margenhorizontal) : int((x+1)*anchocuadro-margenhorizontal) , 0 ]
+		H = mediana(matrizH)
+		matrizS = rango[ int(y*altocuadro+margenvertical) : int((y+1)*altocuadro-margenvertical) , int(x*anchocuadro+margenhorizontal) : int((x+1)*anchocuadro-margenhorizontal) , 1 ]
+		S = mediana(matrizS)
+		matrizV = rango[ int(y*altocuadro+margenvertical) : int((y+1)*altocuadro-margenvertical) , int(x*anchocuadro+margenhorizontal) : int((x+1)*anchocuadro-margenhorizontal) , 2 ]		
+		V = mediana(matrizV)
+		#print(H,S,V)
+		
+		if colores == 1:
+			listacolores["rango_1"] = [[H-HSV[0], S-HSV[1], V-HSV[2]],[H+HSV[0], S+HSV[1], V+HSV[2]]]
+			rangos["rango_1"] = ["AA"]
+			colores = 2
+		else:
+
+
+			for i in range(len(listacolores.keys())):
+				if listacolores["rango_"+str(i+1)][0][0]<H<listacolores["rango_"+str(i+1)][1][0] and listacolores["rango_"+str(i+1)][0][1]<S<listacolores["rango_"+str(i+1)][1][1] and listacolores["rango_"+str(i+1)][0][2]<V<listacolores["rango_"+str(i+1)][1][2]:
+					rangos["rango_"+str(i+1)].append(nombrador(x,y))
+					break
+				if i == len(listacolores.keys())-1:
+					listacolores["rango_"+str(colores)] = [[H-HSV[0], S-HSV[1], V-HSV[2]],[H+HSV[0], S+HSV[1], V+HSV[2]]]
+					rangos["rango_"+str(colores)] = [nombrador(x,y)]
+					colores = colores+1
+
+for i in range(len(rangos.keys())):
+	print("rango "+str(i+1)+": ",str(rangos["rango_"+str(i+1)]))
+
